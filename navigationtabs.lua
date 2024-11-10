@@ -18,6 +18,7 @@ local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
 local Screen = Device.screen
 local util = require("util")
+local BD = require("ui/bidi")
 
 local NavigationTabs = FocusManager:extend {
     modal = false,
@@ -33,6 +34,11 @@ local NavigationTabs = FocusManager:extend {
             {
                 text = "First row, right side"
             },
+            {
+                text = "+",
+                width = 10,
+                unselectable = false
+            }
         },
     },
     callback = nil,
@@ -58,6 +64,8 @@ local NavigationTabs = FocusManager:extend {
 }
 
 function NavigationTabs:init()
+    self.entry_by_id = {}
+
     for i = 1, #self.buttons do
         local row = self.buttons[i]
         for j = 1, #row do
@@ -66,6 +74,8 @@ function NavigationTabs:init()
             if not button.id then
                 button.id = i .. "-" .. j
             end
+
+            self.entry_by_id[button.id] = button
         end
     end
 
@@ -294,6 +304,10 @@ function NavigationTabs:onSetDimensions(dimen)
 end
 
 function NavigationTabs:setSelected(selected)
+    if self.entry_by_id[selected] and self.entry_by_id[selected].unselectable then
+        return
+    end
+
     if self.selected_button then
         local selected_button = self.buttontable:getButtonById(self.selected_button)
         selected_button:onUnfocus()
@@ -322,10 +336,13 @@ end
 
 function NavigationTabs:initGesListener()
     print("initGesListener")
+    local is_rtl = BD.mirroredUILayout()
+
     local mat = {}
     local index = 1
     local x = 0
     local y = 0
+
     for i = 1, #(self.buttontable.buttons_layout) do
         local row = self.buttontable.buttons_layout[i]
         local h = 0
@@ -336,11 +353,17 @@ function NavigationTabs:initGesListener()
             local w = button.dimen.w / Screen:getWidth()
             h = button.dimen.h / Screen:getHeight()
             local id = self.buttons[i][j].id
+            local actual_x
+            if is_rtl then
+                actual_x = 1 - x - w
+            else
+                actual_x = x
+            end
             local val = {
                 id = "navigationtab_" .. id,
                 ges = "tap",
                 screen_zone = {
-                    ratio_x = x, ratio_y = y, ratio_w = w, ratio_h = h
+                    ratio_x = actual_x, ratio_y = y, ratio_w = w, ratio_h = h
                 },
                 overrides = {
                     "readermenu_ext_tap",
@@ -373,7 +396,7 @@ end
 function NavigationTabs:refreshButton(button_id)
     local button = self.buttontable:getButtonById(button_id)
     local focused = button.frame.invert
-    button:setText(button.text_func())
+    button:setText(button.text_func(), button.width)
     if focused then
         button:onFocus()
     end

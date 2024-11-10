@@ -12,6 +12,7 @@ local datetime = require("datetime")
 local Event = require("ui/event")
 local _ = require("gettext")
 local T = require("ffi/util").template
+local Size = require("ui/size")
 
 local TabbedReader = WidgetContainer:extend {
     name = "tabbedreader",
@@ -53,6 +54,13 @@ function TabbedReader:onReaderReady()
         }
     end
 
+    buttons[#buttons+1] = {
+        text = "+",
+        id = "add",
+        width = 50,
+        unselectable = true,
+    }
+
     self.button_dialog = NavigationTabs:new {
         buttons = { buttons },
         callback = function(button_id)
@@ -68,6 +76,11 @@ function TabbedReader:onReaderReady()
 end
 
 function TabbedReader:navigationCallback(button_id)
+    if button_id == "add" then
+        print("Add pressed")
+        return
+    end
+
     if not self.navigation_mat[button_id] then
         print("navigationCallback", "id not found")
         self.navigation_mat[button_id] = { page = 1}
