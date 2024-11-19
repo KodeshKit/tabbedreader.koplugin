@@ -14,6 +14,10 @@ local _ = require("gettext")
 local T = require("ffi/util").template
 local Size = require("ui/size")
 
+local navigation_mat = {}
+local selected_button = nil
+local opening_book = nil
+
 local TabbedReader = WidgetContainer:extend {
     name = "tabbedreader",
     tabs = 3,
@@ -22,44 +26,81 @@ local TabbedReader = WidgetContainer:extend {
 function TabbedReader:init()
     self.ui.menu:registerToMainMenu(self)
     self.readerReady = false
-    self.navigation_mat = {}
-    self.selected_button = nil
+    self.navigation_mat = navigation_mat
+    self.selected_button = selected_button
     self.current_page = 1
     self.current_chapter = nil
+    self.current_book_file = nil
+    self.current_book_title = nil
+    print("TabbedReader loaded")
 end
 
-function TabbedReader:onReaderReady()
+-- Some comments:
+-- switch to document using readerui.switchDocument
+-- doc_settings.data.doc_path is the document path
+-- doc_settings.data.doc_props.title is the document title
+
+function TabbedReader:onReaderReady(doc_settings)
+    self.current_book_file = doc_settings.data.doc_path
+    self.current_book_title = doc_settings.data.doc_props.title
+    print("path", doc_settings.data.doc_path)
+    print("title", doc_settings.data.doc_props.title)
+
+    for k, v in pairs(self.navigation_mat) do
+        print(k, v.page, v.chapter, v.book_file, v.book_title)
+    end
+
     self.readerReady = true
 
     local buttons = {}
 
     for i = 1, self.tabs do
-        local id = "tab_"..i
+        local id = "tab_" .. i
         buttons[i] = {
-            text_func = function ()
+            text_func = function()
                 local nav_entry = self.navigation_mat[id]
                 print("nav_entry", id, nav_entry, nav_entry and nav_entry.chapter)
                 if nav_entry then
-                    if nav_entry.chapter then
-                        return i..": "..nav_entry.chapter
+                    if nav_entry.book_title and nav_entry.chapter then
+                        return nav_entry.book_title .. ": " .. nav_entry.chapter
                     end
+                    return nav_entry.book_title or nav_entry.chapter or "Tab " .. i
                 end
-                return "Tab "..i
+                return "Tab " .. i
             end,
             id = id
         }
-        self.navigation_mat[id] = {
-            page = 1,
-            chapter = nil,
-        }
+        if not self.selected_button then
+            self.selected_button = id
+            selected_button = id
+        end
     end
 
-    buttons[#buttons+1] = {
-        text = "+",
-        id = "add",
-        width = 50,
-        unselectable = true,
-    }
+    local nav_selected = self.navigation_mat[self.selected_button]
+
+    if not nav_selected then
+        nav_selected = {}
+        nav_selected.page = self.current_page
+        nav_selected.chapter = self.current_chapter
+        nav_selected.book_file = self.current_book_file
+        nav_selected.book_title = self.current_book_title
+        self.navigation_mat[self.selected_button] = nav_selected
+    end
+
+    if nav_selected.page and nav_selected.page ~= self.current_page then
+        self.ui:handleEvent(Event:new("GotoPage", nav_selected.page))
+    end
+
+    if nav_selected.book_file and nav_selected.book_file ~= self.current_book_file then
+        if opening_book then
+            print("ERROR - wrong book", nav_selected.book_file)
+        else
+            --    Book opend from the file explorer
+            nav_selected.book_file = self.current_book_file
+            nav_selected.book_title = self.current_book_title
+        end
+    end
+    opening_book = nil
 
     self.button_dialog = NavigationTabs:new {
         buttons = { buttons },
@@ -69,10 +110,8 @@ function TabbedReader:onReaderReady()
     }
     self.ui.view:registerViewModule("button_dialog", self.button_dialog)
     self.button_dialog:initGesListener()
-    self.selected_button = self.button_dialog:getSelected()
+    self.button_dialog:setSelected(self.selected_button)
     print("selected_button", self.selected_button, self.current_page, self.current_chapter)
-    self.navigation_mat[self.selected_button].page = self.current_page
-    self.navigation_mat[self.selected_button].chapter = self.current_chapter
 end
 
 function TabbedReader:navigationCallback(button_id)
@@ -82,14 +121,28 @@ function TabbedReader:navigationCallback(button_id)
     end
 
     if not self.navigation_mat[button_id] then
-        print("navigationCallback", "id not found")
-        self.navigation_mat[button_id] = { page = 1}
+        print("navigationCallback", "id not found", self.current_book_file, self.current_book_title)
+        local nav_entry = {}
+        nav_entry.page = 1
+        nav_entry.book_file = self.current_book_file
+        nav_entry.book_title = self.current_book_title
+        self.navigation_mat[button_id] = nav_entry
+        self.button_dialog:refreshButton(self.selected_button)
     end
 
     print("navigationCallback", self.selected_button, button_id, self.navigation_mat[button_id].page)
     self.selected_button = button_id
+    selected_button = self.selected_button
 
-    self.ui:handleEvent(Event:new("GotoPage", self.navigation_mat[button_id].page))
+    local new_file = self.navigation_mat[button_id].book_file
+    local new_page = self.navigation_mat[button_id].page
+
+    if new_file ~= nil and new_file ~= self.current_book_file then
+        opening_book = new_file
+        self.ui:showReader(new_file, nil, true)
+    else
+        self.ui:handleEvent(Event:new("GotoPage", new_page))
+    end
 end
 
 function TabbedReader:onCloseDocument()
