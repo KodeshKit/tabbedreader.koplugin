@@ -50,8 +50,6 @@ function TabbedReader:onReaderReady(doc_settings)
         print(k, v.page, v.chapter, v.book_file, v.book_title)
     end
 
-    self.readerReady = true
-
     local buttons = {}
 
     for i = 1, self.tabs do
@@ -93,13 +91,16 @@ function TabbedReader:onReaderReady(doc_settings)
 
     if nav_selected.book_file and nav_selected.book_file ~= self.current_book_file then
         if opening_book then
-            print("ERROR - wrong book", nav_selected.book_file)
+            print("ERROR - wrong book. Expected: ", nav_selected.book_file, "actual:", self.current_book_file)
         else
             --    Book opend from the file explorer
+            nav_selected.page = self.current_page -- reset page info as it's a new book
+            nav_selected.chapter = self.current_chapter
             nav_selected.book_file = self.current_book_file
             nav_selected.book_title = self.current_book_title
         end
     end
+
     opening_book = nil
 
     self.button_dialog = NavigationTabs:new {
@@ -112,6 +113,7 @@ function TabbedReader:onReaderReady(doc_settings)
     self.button_dialog:initGesListener()
     self.button_dialog:setSelected(self.selected_button)
     print("selected_button", self.selected_button, self.current_page, self.current_chapter)
+    self.readerReady = true
 end
 
 function TabbedReader:navigationCallback(button_id)
@@ -152,7 +154,8 @@ function TabbedReader:onPageUpdate(page)
     print("Page update", page, self.ui.toc:getTocTitleOfCurrentPage())
     self.current_page = page
     self.current_chapter = self.ui.toc:getTocTitleOfCurrentPage()
-    if self.selected_button then
+    -- Only update selected if onReaderReady was already called
+    if self.readerReady and self.selected_button then
         self.navigation_mat[self.selected_button].page = self.current_page
         self.navigation_mat[self.selected_button].chapter = self.current_chapter
         self.button_dialog:refreshButton(self.selected_button)
