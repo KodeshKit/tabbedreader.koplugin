@@ -160,7 +160,9 @@ function TabbedReader:onPageUpdate(page)
     if self.readerReady and self.selected_button then
         self.navigation_mat[self.selected_button].page = self.current_page
         self.navigation_mat[self.selected_button].chapter = self.current_chapter
-        self.button_dialog:refreshButton(self.selected_button)
+        if self.readerReady then
+            self.button_dialog:refreshButton(self.selected_button)
+        end
     end
 end
 
