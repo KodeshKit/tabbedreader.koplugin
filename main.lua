@@ -32,7 +32,7 @@ function TabbedReader:init()
     self.current_chapter = nil
     self.current_book_file = nil
     self.current_book_title = nil
-    print("TabbedReader loaded")
+    logger.dbg("TabbedReader: loaded")
 end
 
 -- Some comments:
@@ -43,8 +43,8 @@ end
 function TabbedReader:onReaderReady(doc_settings)
     self.current_book_file = doc_settings.data.doc_path
     self.current_book_title = doc_settings.data.doc_props.title
-    print("path", doc_settings.data.doc_path)
-    print("title", doc_settings.data.doc_props.title)
+    logger.dbg("TabbedReader: ", "path", doc_settings.data.doc_path)
+    logger.dbg("TabbedReader: ", "title", doc_settings.data.doc_props.title)
 
     for k, v in pairs(self.navigation_mat) do
         print(k, v.page, v.chapter, v.book_file, v.book_title)
@@ -57,7 +57,7 @@ function TabbedReader:onReaderReady(doc_settings)
         buttons[i] = {
             text_func = function()
                 local nav_entry = self.navigation_mat[id]
-                print("nav_entry", id, nav_entry, nav_entry and nav_entry.chapter)
+                logger.dbg("TabbedReader: ", "nav_entry", id, nav_entry, nav_entry and nav_entry.chapter)
                 if nav_entry then
                     if nav_entry.book_title and nav_entry.chapter then
                         return nav_entry.book_title .. ": " .. nav_entry.chapter
@@ -87,11 +87,12 @@ function TabbedReader:onReaderReady(doc_settings)
 
     if nav_selected.page and nav_selected.page ~= self.current_page then
         self.ui:handleEvent(Event:new("GotoPage", nav_selected.page))
+        logger.dbg("TabbedReader: ", "onReaderReady GotoPage", nav_selected.page)
     end
 
     if nav_selected.book_file and nav_selected.book_file ~= self.current_book_file then
         if opening_book then
-            print("ERROR - wrong book. Expected: ", nav_selected.book_file, "actual:", self.current_book_file)
+            logger.dbg("TabbedReader: ", "ERROR - wrong book. Expected: ", nav_selected.book_file, "actual:", self.current_book_file)
         else
             --    Book opend from the file explorer
             nav_selected.page = self.current_page -- reset page info as it's a new book
@@ -112,18 +113,18 @@ function TabbedReader:onReaderReady(doc_settings)
     self.ui.view:registerViewModule("button_dialog", self.button_dialog)
     self.button_dialog:initGesListener()
     self.button_dialog:setSelected(self.selected_button)
-    print("selected_button", self.selected_button, self.current_page, self.current_chapter)
+    logger.dbg("TabbedReader: ", "selected_button", self.selected_button, self.current_page, self.current_chapter)
     self.readerReady = true
 end
 
 function TabbedReader:navigationCallback(button_id)
     if button_id == "add" then
-        print("Add pressed")
+        logger.dbg("TabbedReader: ", "Add pressed")
         return
     end
 
     if not self.navigation_mat[button_id] then
-        print("navigationCallback", "id not found", self.current_book_file, self.current_book_title)
+        logger.dbg("TabbedReader: ", "navigationCallback", "id not found", self.current_book_file, self.current_book_title)
         local nav_entry = {}
         nav_entry.page = 1
         nav_entry.book_file = self.current_book_file
@@ -132,7 +133,7 @@ function TabbedReader:navigationCallback(button_id)
         self.button_dialog:refreshButton(self.selected_button)
     end
 
-    print("navigationCallback", self.selected_button, button_id, self.navigation_mat[button_id].page)
+    logger.dbg("TabbedReader: ", "navigationCallback", self.selected_button, button_id, self.navigation_mat[button_id].page)
     self.selected_button = button_id
     selected_button = self.selected_button
 
@@ -144,6 +145,7 @@ function TabbedReader:navigationCallback(button_id)
         self.ui:showReader(new_file, nil, true)
     else
         self.ui:handleEvent(Event:new("GotoPage", new_page))
+        logger.dbg("TabbedReader: ", "GotoPage", new_page)
     end
 end
 
@@ -151,7 +153,7 @@ function TabbedReader:onCloseDocument()
 end
 
 function TabbedReader:onPageUpdate(page)
-    print("Page update", page, self.ui.toc:getTocTitleOfCurrentPage())
+    logger.dbg("TabbedReader: ", "Page update", page, self.ui.toc:getTocTitleOfCurrentPage())
     self.current_page = page
     self.current_chapter = self.ui.toc:getTocTitleOfCurrentPage()
     -- Only update selected if onReaderReady was already called
@@ -163,7 +165,7 @@ function TabbedReader:onPageUpdate(page)
 end
 
 function TabbedReader:onPosUpdate(pos)
-    print("Pos update", pos)
+    logger.dbg("Pos update", pos)
 end
 
 function TabbedReader:addToMainMenu(menu_items)
@@ -182,7 +184,7 @@ function TabbedReader:onResume()
 end
 
 function TabbedReader:onSetDimensions(dimen)
-    print("onSetDimensions main")
+    logger.dbg("TabbedReader: ", "onSetDimensions main")
     if self.readerReady then
         self:onReaderReady()
     end
