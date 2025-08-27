@@ -60,6 +60,9 @@ end
 -- doc_settings.data.doc_props.title is the document title
 
 function TabbedReader:onReaderReady(doc_settings)
+    if not doc_settings then
+        return
+    end
     self.current_book_file = doc_settings.data.doc_path
     self.current_book_title = doc_settings.data.doc_props.title
     logger.dbg("TabbedReader: ", "path", doc_settings.data.doc_path)
