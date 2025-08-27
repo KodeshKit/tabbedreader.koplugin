@@ -7,6 +7,7 @@ local UIManager = require("ui/uimanager")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local TopContainer = require("ui/widget/container/topcontainer")
+local EventListener = require("ui/widget/eventlistener")
 local logger = require("logger")
 local datetime = require("datetime")
 local Event = require("ui/event")
@@ -18,21 +19,39 @@ local navigation_mat = {}
 local selected_button = nil
 local opening_book = nil
 
-local TabbedReader = WidgetContainer:extend {
+local TabbedReader = EventListener:extend {
     name = "tabbedreader",
     tabs = 3,
 }
 
+function TabbedReader:new(o)
+    o = self:extend(o)
+    -- Both o._init and o.init are called on object creation.
+    -- But o._init is used for base widget initialization (basic components used to build other widgets).
+    -- While o.init is for higher level widgets, for example Menu.
+    if o._init then o:_init() end
+    if o.init then o:init() end
+    return o
+end
+
 function TabbedReader:init()
     self.ui.menu:registerToMainMenu(self)
     self.readerReady = false
-    self.navigation_mat = navigation_mat
-    self.selected_button = selected_button
     self.current_page = 1
     self.current_chapter = nil
     self.current_book_file = nil
     self.current_book_title = nil
     logger.dbg("TabbedReader: loaded")
+end
+
+function TabbedReader:tabsToStr()
+    local tabs_table = "\nPage | Chapter | Book Title | Book Path\n===============================\n"
+
+    for k, v in pairs(navigation_mat) do
+        tabs_table = tabs_table .. v.page .. " | " .. v.chapter .. " | " .. v.book_title .. " | " .. v.book_file .. "\n"
+    end
+
+    return tabs_table
 end
 
 -- Some comments:
@@ -46,9 +65,7 @@ function TabbedReader:onReaderReady(doc_settings)
     logger.dbg("TabbedReader: ", "path", doc_settings.data.doc_path)
     logger.dbg("TabbedReader: ", "title", doc_settings.data.doc_props.title)
 
-    for k, v in pairs(self.navigation_mat) do
-        print(k, v.page, v.chapter, v.book_file, v.book_title)
-    end
+    logger.dbg("TabbedReader:onReaderReady", self:tabsToStr())
 
     local buttons = {}
 
@@ -56,7 +73,7 @@ function TabbedReader:onReaderReady(doc_settings)
         local id = "tab_" .. i
         buttons[i] = {
             text_func = function()
-                local nav_entry = self.navigation_mat[id]
+                local nav_entry = navigation_mat[id]
                 logger.dbg("TabbedReader: ", "nav_entry", id, nav_entry, nav_entry and nav_entry.chapter)
                 if nav_entry then
                     if nav_entry.book_title and nav_entry.chapter then
@@ -68,13 +85,12 @@ function TabbedReader:onReaderReady(doc_settings)
             end,
             id = id
         }
-        if not self.selected_button then
-            self.selected_button = id
+        if not selected_button then
             selected_button = id
         end
     end
 
-    local nav_selected = self.navigation_mat[self.selected_button]
+    local nav_selected = navigation_mat[selected_button]
 
     if not nav_selected then
         nav_selected = {}
@@ -82,7 +98,7 @@ function TabbedReader:onReaderReady(doc_settings)
         nav_selected.chapter = self.current_chapter
         nav_selected.book_file = self.current_book_file
         nav_selected.book_title = self.current_book_title
-        self.navigation_mat[self.selected_button] = nav_selected
+        navigation_mat[selected_button] = nav_selected
     end
 
     if nav_selected.page and nav_selected.page ~= self.current_page then
@@ -92,7 +108,8 @@ function TabbedReader:onReaderReady(doc_settings)
 
     if nav_selected.book_file and nav_selected.book_file ~= self.current_book_file then
         if opening_book then
-            logger.dbg("TabbedReader: ", "ERROR - wrong book. Expected: ", nav_selected.book_file, "actual:", self.current_book_file)
+            logger.dbg("TabbedReader: ", "ERROR - wrong book. Expected: ", nav_selected.book_file, "actual:",
+                self.current_book_file)
         else
             --    Book opend from the file explorer
             nav_selected.page = self.current_page -- reset page info as it's a new book
@@ -112,8 +129,8 @@ function TabbedReader:onReaderReady(doc_settings)
     }
     self.ui.view:registerViewModule("button_dialog", self.button_dialog)
     self.button_dialog:initGesListener()
-    self.button_dialog:setSelected(self.selected_button)
-    logger.dbg("TabbedReader: ", "selected_button", self.selected_button, self.current_page, self.current_chapter)
+    self.button_dialog:setSelected(selected_button)
+    logger.dbg("TabbedReader: ", "selected_button", selected_button, self.current_page, self.current_chapter)
     self.readerReady = true
 end
 
@@ -123,22 +140,22 @@ function TabbedReader:navigationCallback(button_id)
         return
     end
 
-    if not self.navigation_mat[button_id] then
-        logger.dbg("TabbedReader: ", "navigationCallback", "id not found", self.current_book_file, self.current_book_title)
+    if not navigation_mat[button_id] then
+        logger.dbg("TabbedReader: ", "navigationCallback", "id not found", self.current_book_file,
+            self.current_book_title)
         local nav_entry = {}
         nav_entry.page = 1
         nav_entry.book_file = self.current_book_file
         nav_entry.book_title = self.current_book_title
-        self.navigation_mat[button_id] = nav_entry
-        self.button_dialog:refreshButton(self.selected_button)
+        navigation_mat[button_id] = nav_entry
+        self.button_dialog:refreshButton(selected_button)
     end
 
-    logger.dbg("TabbedReader: ", "navigationCallback", self.selected_button, button_id, self.navigation_mat[button_id].page)
-    self.selected_button = button_id
-    selected_button = self.selected_button
+    logger.dbg("TabbedReader: ", "navigationCallback", selected_button, button_id, navigation_mat[button_id].page)
+    selected_button = button_id
 
-    local new_file = self.navigation_mat[button_id].book_file
-    local new_page = self.navigation_mat[button_id].page
+    local new_file = navigation_mat[button_id].book_file
+    local new_page = navigation_mat[button_id].page
 
     if new_file ~= nil and new_file ~= self.current_book_file then
         opening_book = new_file
@@ -153,15 +170,15 @@ function TabbedReader:onCloseDocument()
 end
 
 function TabbedReader:onPageUpdate(page)
-    logger.dbg("TabbedReader: ", "Page update", page, self.ui.toc:getTocTitleOfCurrentPage())
+    logger.dbg("TabbedReader: ", "Page update", self.current_page, "=>", page, self.ui.toc:getTocTitleOfCurrentPage())
     self.current_page = page
     self.current_chapter = self.ui.toc:getTocTitleOfCurrentPage()
-    -- Only update selected if onReaderReady was already called
-    if self.readerReady and self.selected_button then
-        self.navigation_mat[self.selected_button].page = self.current_page
-        self.navigation_mat[self.selected_button].chapter = self.current_chapter
+
+    if selected_button then
+        navigation_mat[selected_button].page = self.current_page
+        navigation_mat[selected_button].chapter = self.current_chapter
         if self.readerReady then
-            self.button_dialog:refreshButton(self.selected_button)
+            self.button_dialog:refreshButton(selected_button)
         end
     end
 end
