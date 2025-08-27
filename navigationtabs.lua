@@ -19,6 +19,7 @@ local VerticalSpan = require("ui/widget/verticalspan")
 local Screen = Device.screen
 local util = require("util")
 local BD = require("ui/bidi")
+local logger = require("logger")
 
 local NavigationTabs = FocusManager:extend {
     modal = false,
@@ -300,7 +301,7 @@ function NavigationTabs:_onPageScrollToRow(row)
 end
 
 function NavigationTabs:onSetDimensions(dimen)
-    print("onSetDimensions")
+    logger.dbg("NavigationTabs: onSetDimensions")
 end
 
 function NavigationTabs:setSelected(selected)
@@ -313,7 +314,7 @@ function NavigationTabs:setSelected(selected)
         selected_button:onUnfocus()
         selected_button:refresh()
     end
-    print("Focusing", selected)
+    logger.dbg("NavigationTabs: focusing", selected)
 
     local button = self.buttontable:getButtonById(selected)
     button:onFocus()
@@ -335,7 +336,7 @@ function NavigationTabs:tapHandler(button, ges)
 end
 
 function NavigationTabs:initGesListener()
-    print("initGesListener")
+    logger.dbg("NavigationTabs: initGesListener")
     local is_rtl = BD.mirroredUILayout()
 
     local mat = {}
@@ -376,7 +377,7 @@ function NavigationTabs:initGesListener()
                 end,
             }
             mat[index] = val
-            print(val.id, val.ges,
+            logger.dbg("NavigationTabs:",val.id, val.ges,
                 val.screen_zone.ratio_x, val.screen_zone.ratio_y,
                 val.screen_zone.ratio_w, val.screen_zone.ratio_h)
             x = x + w
