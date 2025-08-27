@@ -123,8 +123,8 @@ function TabbedReader:onReaderReady(doc_settings)
 
     self.button_dialog = NavigationTabs:new {
         buttons = { buttons },
-        callback = function(button_id)
-            self:navigationCallback(button_id)
+        callback = function(button_id, ges)
+            self:navigationCallback(button_id, ges)
         end,
     }
     self.ui.view:registerViewModule("button_dialog", self.button_dialog)
@@ -134,12 +134,7 @@ function TabbedReader:onReaderReady(doc_settings)
     self.readerReady = true
 end
 
-function TabbedReader:navigationCallback(button_id)
-    if button_id == "add" then
-        logger.dbg("TabbedReader: ", "Add pressed")
-        return
-    end
-
+function TabbedReader:navigationTapCallback(button_id)
     if not navigation_mat[button_id] then
         logger.dbg("TabbedReader: ", "navigationCallback", "id not found", self.current_book_file,
             self.current_book_title)
@@ -163,6 +158,34 @@ function TabbedReader:navigationCallback(button_id)
     else
         self.ui:handleEvent(Event:new("GotoPage", new_page))
         logger.dbg("TabbedReader: ", "GotoPage", new_page)
+    end
+
+    self.button_dialog:setSelected(selected_button)
+end
+
+function TabbedReader:navigationHoldCallback(button_id)
+
+end
+
+function TabbedReader:navigationCallback(button_id, ges)
+    if button_id == ID_MENU then
+        logger.dbg("TabbedReader: ", "Menu pressed")
+        return
+    end
+
+    if button_id == ID_ADD then
+        logger.dbg("TabbedReader: ", "Add pressed")
+        return
+    end
+
+    if ges.ges == "tap" then
+        self:navigationTapCallback(button_id)
+        return
+    end
+
+    if ges.ges == "hold" then
+        self:navigationHoldCallback(button_id)
+        return
     end
 end
 

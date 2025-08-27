@@ -38,7 +38,7 @@ local NavigationTabs = FocusManager:extend {
             {
                 text = "+",
                 width = 10,
-                unselectable = false
+                unselectable = true
             }
         },
     },
@@ -324,14 +324,10 @@ function NavigationTabs:setSelected(selected)
 end
 
 function NavigationTabs:tapHandler(button, ges)
-    --if self.selected_button == button then
-    --    return
-    --end
-    --local previous = self.buttontable.buttons_layout[self.selected[1]][self.selected[2]]
-    self:setSelected(button)
+    logger.dbg("NavigationTabs", "tapHandler", button, ges)
 
     if self.callback then
-        self.callback(button)
+        self.callback(button, ges)
     end
 end
 
@@ -360,12 +356,13 @@ function NavigationTabs:initGesListener()
             else
                 actual_x = x
             end
+
+            local screen_zone = { ratio_x = actual_x, ratio_y = y, ratio_w = w, ratio_h = h }
+
             local val = {
                 id = "navigationtab_" .. id,
                 ges = "tap",
-                screen_zone = {
-                    ratio_x = actual_x, ratio_y = y, ratio_w = w, ratio_h = h
-                },
+                screen_zone = screen_zone,
                 overrides = {
                     "readermenu_ext_tap",
                     "tap_top_left_corner",
@@ -377,11 +374,27 @@ function NavigationTabs:initGesListener()
                 end,
             }
             mat[index] = val
-            logger.dbg("NavigationTabs:",val.id, val.ges,
+            index = index + 1
+
+            val = {
+                id = "navigationtab_hold_" .. id,
+                ges = "hold",
+                screen_zone = screen_zone,
+                overrides = {
+                    "readerhighlight_hold",
+                },
+                handler = function(ges)
+                    self:tapHandler(id, ges)
+                    return true
+                end,
+            }
+            mat[index] = val
+            index = index + 1
+
+            logger.dbg("NavigationTabs:", val.id, val.ges,
                 val.screen_zone.ratio_x, val.screen_zone.ratio_y,
                 val.screen_zone.ratio_w, val.screen_zone.ratio_h)
             x = x + w
-            index = index + 1
         end
         y = y + h
     end
