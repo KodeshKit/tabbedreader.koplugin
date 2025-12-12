@@ -21,7 +21,7 @@ local opening_book = nil
 
 local TabbedReader = EventListener:extend {
     name = "tabbedreader",
-    tabs = 3,
+    tabs = 6,
 }
 
 function TabbedReader:new(o)
