@@ -42,6 +42,7 @@ local NavigationTabs = FocusManager:extend {
             }
         },
     },
+    margin = 15,
     callback = nil,
     width = nil,
     width_factor = nil,            -- number between 0 and 1, factor to the smallest of screen width and height
@@ -246,6 +247,16 @@ function NavigationTabs:setTitle(title)
     UIManager:setDirty("all", "ui")
 end
 
+function NavigationTabs:reloadButtons(new_buttons)
+    if new_buttons then
+        self.buttons = new_buttons
+    end
+    self:free()
+    self:init()
+    UIManager:setDirty("all", "ui")
+    logger.dbg("NavigationTabs: reloadButtons")
+end
+
 function NavigationTabs:onShow()
     UIManager:setDirty(self, function()
         return "ui", self.movable.dimen
@@ -323,6 +334,18 @@ function NavigationTabs:setSelected(selected)
     button:refresh()
 end
 
+function NavigationTabs:setFocus(id, focused)
+    local button = self.buttontable:getButtonById(id)
+    if button then
+        if focused then
+            button:onFocus()
+        else
+            button:onUnfocus()
+        end
+        button:refresh()
+    end
+end
+
 function NavigationTabs:tapHandler(button, ges)
     logger.dbg("NavigationTabs", "tapHandler", button, ges)
 
@@ -364,6 +387,7 @@ function NavigationTabs:initGesListener()
                 ges = "tap",
                 screen_zone = screen_zone,
                 overrides = {
+                    "readerhighlight_tap",
                     "readermenu_ext_tap",
                     "tap_top_left_corner",
                     "tap_top_right_corner",

@@ -16,12 +16,18 @@ local T = require("ffi/util").template
 local Size = require("ui/size")
 
 local navigation_mat = {}
+local tabs = 1
 local selected_button = nil
 local opening_book = nil
 
+local ID_MENU = "menu"
+local ID_ADD = "add"
+local ID_BOOKMARK = "bookmark"
+
 local TabbedReader = EventListener:extend {
     name = "tabbedreader",
-    tabs = 6,
+    max_tabs = 10,
+    button_width = 30,
 }
 
 function TabbedReader:new(o)
@@ -70,28 +76,7 @@ function TabbedReader:onReaderReady(doc_settings)
 
     logger.dbg("TabbedReader:onReaderReady", self:tabsToStr())
 
-    local buttons = {}
-
-    for i = 1, self.tabs do
-        local id = "tab_" .. i
-        buttons[i] = {
-            text_func = function()
-                local nav_entry = navigation_mat[id]
-                logger.dbg("TabbedReader: ", "nav_entry", id, nav_entry, nav_entry and nav_entry.chapter)
-                if nav_entry then
-                    if nav_entry.book_title and nav_entry.chapter then
-                        return nav_entry.book_title .. ": " .. nav_entry.chapter
-                    end
-                    return nav_entry.book_title or nav_entry.chapter or "Tab " .. i
-                end
-                return "Tab " .. i
-            end,
-            id = id
-        }
-        if not selected_button then
-            selected_button = id
-        end
-    end
+    local buttons = self:buildButtons()
 
     local nav_selected = navigation_mat[selected_button]
 
@@ -125,7 +110,7 @@ function TabbedReader:onReaderReady(doc_settings)
     opening_book = nil
 
     self.button_dialog = NavigationTabs:new {
-        buttons = { buttons },
+        buttons = buttons,
         callback = function(button_id, ges)
             self:navigationCallback(button_id, ges)
         end,
@@ -133,8 +118,85 @@ function TabbedReader:onReaderReady(doc_settings)
     self.ui.view:registerViewModule("button_dialog", self.button_dialog)
     self.button_dialog:initGesListener()
     self.button_dialog:setSelected(selected_button)
+    self:refreshBookmark()
     logger.dbg("TabbedReader: ", "selected_button", selected_button, self.current_page, self.current_chapter)
     self.readerReady = true
+end
+
+function TabbedReader:getIdForButton(index)
+    return "tab_" .. index
+end
+
+function TabbedReader:buildButtons()
+    local buttons = {}
+
+    buttons[1] = {
+        icon = "appbar.menu",
+        icon_width = self.button_width * 0.9,
+        icon_height = self.button_width * 0.9,
+        id = ID_MENU,
+        width = self.button_width,
+        unselectable = true
+    }
+
+    for i = 1, tabs do
+        local id = self:getIdForButton(i)
+        buttons[i + 1] = {
+            text_func = function()
+                local nav_entry = navigation_mat[id]
+                logger.dbg("TabbedReader: ", "nav_entry", id, nav_entry, nav_entry and nav_entry.chapter)
+                if nav_entry then
+                    if nav_entry.book_title and nav_entry.chapter then
+                        return nav_entry.book_title .. ": " .. nav_entry.chapter
+                    end
+                    return nav_entry.book_title or nav_entry.chapter or "Tab " .. i
+                end
+                return "Tab " .. i
+            end,
+            id = id,
+        }
+        if not selected_button then
+            selected_button = id
+        end
+    end
+
+    local index = tabs + 2
+
+    if tabs < self.max_tabs then
+        buttons[index] = {
+            text = "+",
+            id = ID_ADD,
+            width = self.button_width,
+            unselectable = true,
+        }
+        index = index + 1
+    end
+
+    buttons[index] = {
+        icon = "bookmark",
+        icon_width = self.button_width * 0.9,
+        icon_height = self.button_width * 0.9,
+        id = ID_BOOKMARK,
+        width = self.button_width,
+        unselectable = true,
+    }
+    index = index + 1
+
+    return { buttons }
+end
+
+function TabbedReader:reloadLayout()
+    local buttons = self:buildButtons()
+    self.button_dialog:reloadButtons(buttons)
+    self.button_dialog:initGesListener()
+    self.button_dialog:setSelected(selected_button)
+    self:refreshBookmark()
+end
+
+function TabbedReader:refreshBookmark()
+    local button = self.button_dialog:getButtonById(ID_BOOKMARK)
+    button.frame.invert = self.ui.bookmark:isPageBookmarked()
+    button:refresh()
 end
 
 function TabbedReader:navigationTapCallback(button_id)
@@ -178,6 +240,20 @@ function TabbedReader:navigationCallback(button_id, ges)
 
     if button_id == ID_ADD then
         logger.dbg("TabbedReader: ", "Add pressed")
+        if tabs >= self.max_tabs then
+            logger.dbg("TabbedReader: ", "Max tabs reached")
+            return
+        end
+        tabs = tabs + 1
+        self:reloadLayout()
+        self:navigationTapCallback(self:getIdForButton(tabs))
+        return
+    end
+
+    if button_id == ID_BOOKMARK then
+        logger.dbg("TabbedReader: ", "Bookmark pressed")
+        self.ui.bookmark:onToggleBookmark()
+        self:refreshBookmark()
         return
     end
 
@@ -190,6 +266,11 @@ function TabbedReader:navigationCallback(button_id, ges)
         self:navigationHoldCallback(button_id)
         return
     end
+end
+
+
+function TabbedReader:onAnnotationsModified(item)
+    self:refreshBookmark()
 end
 
 function TabbedReader:onCloseDocument()
