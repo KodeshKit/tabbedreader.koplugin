@@ -350,16 +350,16 @@ function TabbedReader:onPosUpdate(pos)
     logger.dbg("Pos update", pos)
 end
 
---function TabbedReader:addToMainMenu(menu_items)
---    menu_items.tabbed_reader = {
---        text_func = function()
---            return _("Tabbed Reader")
---        end,
---        sorting_hint = "more_tools",
---        sub_item_table = {
---        },
---    }
---end
+function TabbedReader:addToMainMenu(menu_items)
+    --menu_items.tabbed_reader = {
+    --    text_func = function()
+    --        return _("Tabbed Reader")
+    --    end,
+    --    sorting_hint = "more_tools",
+    --    sub_item_table = {
+    --    },
+    --}
+end
 
 function TabbedReader:onResume()
 
