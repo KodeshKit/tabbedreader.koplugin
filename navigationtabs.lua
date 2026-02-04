@@ -390,10 +390,19 @@ function NavigationTabs:initGesListener()
                 ges = "tap",
                 screen_zone = screen_zone,
                 overrides = {
+                    "tap_link",
                     "readerhighlight_tap",
-                    "readermenu_ext_tap",
                     "tap_top_left_corner",
                     "tap_top_right_corner",
+                    "tap_left_bottom_corner",
+                    "tap_right_bottom_corner",
+                    "readerfooter_tap",
+                    "readerconfigmenu_ext_tap",
+                    "readerconfigmenu_tap",
+                    "readermenu_ext_tap",
+                    "readermenu_tap",
+                    "tap_forward",
+                    "tap_backward",
                 },
                 handler = function(ges)
                     self:tapHandler(id, ges)
