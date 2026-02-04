@@ -250,6 +250,7 @@ end
 function NavigationTabs:reloadButtons(new_buttons)
     if new_buttons then
         self.buttons = new_buttons
+        self.selected_button = nil -- clear selected button
     end
     self:free()
     self:init()
@@ -358,7 +359,9 @@ function NavigationTabs:initGesListener()
     logger.dbg("NavigationTabs: initGesListener")
     local is_rtl = BD.mirroredUILayout()
 
-    local mat = {}
+    self:unRegisterGesListener()
+
+    self.touch_zone_mat = {}
     local index = 1
     local x = 0
     local y = 0
@@ -397,7 +400,7 @@ function NavigationTabs:initGesListener()
                     return true
                 end,
             }
-            mat[index] = val
+            self.touch_zone_mat[index] = val
             index = index + 1
 
             val = {
@@ -412,7 +415,7 @@ function NavigationTabs:initGesListener()
                     return true
                 end,
             }
-            mat[index] = val
+            self.touch_zone_mat[index] = val
             index = index + 1
 
             logger.dbg("NavigationTabs:", val.id, val.ges,
@@ -422,9 +425,18 @@ function NavigationTabs:initGesListener()
         end
         y = y + h
     end
-    self.ui:registerTouchZones(mat)
+    self.ui:registerTouchZones(self.touch_zone_mat)
 
     self:setSelected(self.buttons[1][1].id)
+end
+
+function NavigationTabs:unRegisterGesListener()
+    if not self.touch_zone_mat then
+        return
+    end
+
+    logger.dbg("NavigationTabs: unRegisterGesListener")
+    self.ui:unRegisterTouchZones(self.touch_zone_mat)
 end
 
 function NavigationTabs:getSelected()
