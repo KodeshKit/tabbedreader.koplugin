@@ -14,6 +14,7 @@ local Event = require("ui/event")
 local _ = require("gettext")
 local T = require("ffi/util").template
 local Size = require("ui/size")
+local Font = require("ui/font")
 
 local tabs = {}
 local selected_tab_index = 1
@@ -26,7 +27,8 @@ local ID_BOOKMARK = "bookmark"
 local TabbedReader = EventListener:extend {
     name = "tabbedreader",
     max_tabs = 10,
-    button_width = 30,
+    button_width = nil, -- The width of the add, bookmark and menu buttons. Must be whole.Defaults to the bar's height.
+                        -- Defaults to the bar's height, which creates square buttons.
 }
 
 function TabbedReader:new(o)
@@ -40,13 +42,15 @@ function TabbedReader:new(o)
 end
 
 function TabbedReader:init()
+    -- Width is based on the text's height (to get a square button). See TextBoxWidget:init(). Multiplied by 1.2 because of the padding.
+    self.button_width = self.button_width or math.floor((1 + 0.3) * Font:getFace("x_smalltfont").size * 1.2)
     self.ui.menu:registerToMainMenu(self)
     self.readerReady = false
     self.current_page = 1
     self.current_chapter = nil
     self.current_book_file = nil
     self.current_book_title = nil
-    logger.dbg("TabbedReader: loaded")
+    logger.dbg("TabbedReader: loaded. Button width: ", self.button_width)
 end
 
 function TabbedReader:tabsToStr()
@@ -147,8 +151,8 @@ function TabbedReader:buildButtons()
 
     buttons[1] = {
         icon = "appbar.menu",
-        icon_width = self.button_width * 0.9,
-        icon_height = self.button_width * 0.9,
+        icon_width = self.button_width,
+        icon_height = self.button_width,
         id = ID_MENU,
         width = self.button_width,
         unselectable = true
@@ -185,8 +189,8 @@ function TabbedReader:buildButtons()
 
     buttons[index] = {
         icon = "bookmark",
-        icon_width = self.button_width * 0.9,
-        icon_height = self.button_width * 0.9,
+        icon_width = self.button_width,
+        icon_height = self.button_width,
         id = ID_BOOKMARK,
         width = self.button_width,
         unselectable = true,
@@ -235,6 +239,7 @@ function TabbedReader:navigationTapCallback(button_id)
     end
 
     self.button_dialog:setSelected(self:getIdForButton(selected_tab_index))
+    self:refreshBookmark()
 end
 
 function TabbedReader:closeTab(tab_index)
@@ -343,6 +348,7 @@ function TabbedReader:onPageUpdate(page)
 
     if self.readerReady then
         self.button_dialog:refreshButton(self:getIdForButton(selected_tab_index))
+        self:refreshBookmark()
     end
 end
 
