@@ -210,9 +210,11 @@ function TabbedReader:reloadLayout()
 end
 
 function TabbedReader:refreshBookmark()
-    local button = self.button_dialog:getButtonById(ID_BOOKMARK)
-    button.frame.invert = self.ui.bookmark:isPageBookmarked()
-    button:refresh()
+    if self.readerReady then
+        local button = self.button_dialog:getButtonById(ID_BOOKMARK)
+        button.frame.invert = self.ui.bookmark:isPageBookmarked()
+        button:refresh()
+    end
 end
 
 function TabbedReader:navigationTapCallback(button_id)
@@ -239,7 +241,6 @@ function TabbedReader:navigationTapCallback(button_id)
     end
 
     self.button_dialog:setSelected(self:getIdForButton(selected_tab_index))
-    self:refreshBookmark()
 end
 
 function TabbedReader:closeTab(tab_index)
