@@ -58,7 +58,7 @@ function TabbedReader:tabsToStr()
 
     for k, v in ipairs(tabs) do
         tabs_table = tabs_table ..
-            k .. " | " .. v.page .. " | " .. v.chapter .. " | " .. v.book_title .. " | " .. v.book_file .. "\n"
+            k .. " | " .. v.page .. " | " .. v.chapter .. " | " .. (v.book_title or "Unknown") .. " | " .. v.book_file .. "\n"
     end
 
     return tabs_table
@@ -98,8 +98,8 @@ function TabbedReader:onReaderReady(doc_settings)
     if nav_selected.book_file == self.current_book_file then
         -- Only change page if it's the same book
         if nav_selected.page and nav_selected.page ~= self.current_page then
-            self.ui:handleEvent(Event:new("GotoPage", nav_selected.page))
             logger.dbg("TabbedReader: ", "onReaderReady GotoPage", nav_selected.page)
+            self.ui:handleEvent(Event:new("GotoPage", nav_selected.page))
         end
     end
 
@@ -236,8 +236,8 @@ function TabbedReader:navigationTapCallback(button_id)
         opening_book = new_file
         self.ui:showReader(new_file, nil, true)
     else
-        self.ui:handleEvent(Event:new("GotoPage", new_page))
         logger.dbg("TabbedReader: ", "GotoPage", new_page)
+        self.ui:handleEvent(Event:new("GotoPage", new_page))
     end
 
     self.button_dialog:setSelected(self:getIdForButton(selected_tab_index))
