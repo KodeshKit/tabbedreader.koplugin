@@ -187,15 +187,15 @@ function TabbedReader:buildButtons()
         index = index + 1
     end
 
-    buttons[index] = {
-        icon = "bookmark",
-        icon_width = self.button_width,
-        icon_height = self.button_width,
-        id = ID_BOOKMARK,
-        width = self.button_width,
-        unselectable = true,
-    }
-    index = index + 1
+    --buttons[index] = {
+    --    icon = "bookmark",
+    --    icon_width = self.button_width,
+    --    icon_height = self.button_width,
+    --    id = ID_BOOKMARK,
+    --    width = self.button_width,
+    --    unselectable = true,
+    --}
+    --index = index + 1
 
     return { buttons }
 end
