@@ -29,6 +29,7 @@ local TabbedReader = EventListener:extend {
     max_tabs = 10,
     button_width = nil, -- The width of the add, bookmark and menu buttons. Must be whole.Defaults to the bar's height.
                         -- Defaults to the bar's height, which creates square buttons.
+    show_bookmarks = false,
 }
 
 function TabbedReader:new(o)
@@ -187,15 +188,17 @@ function TabbedReader:buildButtons()
         index = index + 1
     end
 
-    --buttons[index] = {
-    --    icon = "bookmark",
-    --    icon_width = self.button_width,
-    --    icon_height = self.button_width,
-    --    id = ID_BOOKMARK,
-    --    width = self.button_width,
-    --    unselectable = true,
-    --}
-    --index = index + 1
+    if self.show_bookmarks then
+        buttons[index] = {
+            icon = "bookmark",
+            icon_width = self.button_width,
+            icon_height = self.button_width,
+            id = ID_BOOKMARK,
+            width = self.button_width,
+            unselectable = true,
+        }
+        index = index + 1
+    end
 
     return { buttons }
 end
@@ -210,7 +213,7 @@ function TabbedReader:reloadLayout()
 end
 
 function TabbedReader:refreshBookmark()
-    if self.readerReady then
+    if self.readerReady and self.show_bookmarks then
         local button = self.button_dialog:getButtonById(ID_BOOKMARK)
         button.frame.invert = self.ui.bookmark:isPageBookmarked()
         button:refresh()
